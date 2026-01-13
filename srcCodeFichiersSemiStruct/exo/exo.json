@@ -1,0 +1,24 @@
+{
+    "1": {
+        "nom": "Dupont",
+        "age": 45,
+        "tension": "12/8",
+        "glycemie": 1.1,
+        "temperature": 36.8
+    },
+    "2": {
+        "nom": "Martin",
+        "age": 30,
+        "tension": "11/7",
+        "glycemie": 0.9,
+        "temperature": 37.0
+    },
+    "3": {
+      "nom": "Leblanc",
+      "age": 55,
+      "tension": "13/9",
+      "glycemie": 1.3,
+      "temperature": 36.6
+    }
+
+}

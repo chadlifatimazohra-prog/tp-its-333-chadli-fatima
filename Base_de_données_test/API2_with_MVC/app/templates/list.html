@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Liste des étudiants</h2>
+
+<table border="1">
+<tr>
+    <th>Nom</th>
+    <th>Adresse</th>
+    <th>Pincode</th>
+    <th>Action</th>
+</tr>
+
+{% for s in students %}
+<tr>
+    <td>{{ s[1] }}</td>
+    <td>{{ s[2] }}</td>
+    <td>{{ s[3] }}</td>
+    <td>
+        <a href="/edit/{{ s[0] }}">Modifier</a>
+    </td>
+</tr>
+{% endfor %}
+
+</table>
+
+</body>
+</html>

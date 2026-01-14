@@ -1,0 +1,30 @@
+services:
+  # --- SERVICE 1 : PERSONNE ---
+  person-service:
+    build: ./person-service
+    ports:
+      - "5001:5001"
+    environment:
+      # NOUVEAU : On lui dit où est le service santé
+      - HEALTH_URL=http://health-service:5002/health/
+    volumes:
+      - ./person-service:/app
+
+  # --- SERVICE 2 : SANTÉ ---
+  health-service:
+    build: ./health-service
+    ports:
+      - "5002:5002"
+    environment:
+      - PERSON_URL=http://person-service:5001/persons/
+    volumes:
+      - ./health-service:/app
+    depends_on:
+      - person-service
+
+  # --- SERVICE 3 : AUTH ---
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "5003:5003"
+

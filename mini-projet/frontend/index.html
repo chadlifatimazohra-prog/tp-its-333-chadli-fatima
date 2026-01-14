@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Microservices Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
+        .box { background: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; color: #333; }
+        input { padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; width: 60%; }
+        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
+        .btn-green { background-color: #28a745; }
+        .btn-blue { background-color: #007bff; }
+        .btn-red { background-color: #dc3545; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+
+        .status { padding: 10px; margin-top: 10px; border-radius: 5px; display: none; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+
+    <h1>🚀 Dashboard Microservices</h1>
+
+    <div class="box" style="border-left: 5px solid #007bff;">
+        <h2>🔑 Connexion</h2>
+        <input type="text" id="user" placeholder="admin" value="admin">
+        <input type="password" id="pass" placeholder="admin" value="admin">
+        <button class="btn-blue" onclick="login()">Se Connecter</button>
+        <div id="msgAuth" class="status"></div>
+    </div>
+
+    <div class="box">
+        <h2>➕ Ajouter une Personne</h2>
+        <input type="text" id="newName" placeholder="Nom (ex: Thomas)">
+        <button class="btn-green" onclick="creerPersonne()">Créer</button>
+    </div>
+
+    <div class="box">
+        <h2>👥 Liste des Personnes</h2>
+        <button class="btn-blue" onclick="chargerListe()" style="font-size: 0.8em;">🔄 Actualiser la liste</button>
+
+        <table id="tablePersonnes">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Actions Santé (Service 2)</th>
+                    <th>Actions Personne (Service 1)</th>
+                </tr>
+            </thead>
+            <tbody id="listeBody">
+                </tbody>
+        </table>
+    </div>
+
+    <div class="box" id="boxSante" style="display:none; border-left: 5px solid #28a745;">
+        <h2>🏥 Dossier Médical <span id="santeTitre"></span></h2>
+        <p id="santeInfo">Chargement...</p>
+        <div style="margin-top: 10px;">
+            <input type="number" id="poids" placeholder="Poids" style="width: 80px;">
+            <input type="number" id="taille" placeholder="Taille" style="width: 80px;">
+            <button class="btn-green" onclick="sauvegarderSante()">💾 Sauvegarder</button>
+            <button class="btn-red" onclick="supprimerJusteSante()">🗑️ Supprimer Santé Seulement</button>
+        </div>
+    </div>
+
+    <script>
+        let token = "";
+        let currentId = null;
+
+        async function login() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            try {
+                const r = await fetch('http://127.0.0.1:5003/login', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: u, password: p})
+                });
+                const d = await r.json();
+                if(r.ok) {
+                    token = d.token;
+                    msg('msgAuth', 'Connecté !', true);
+                    chargerListe();
+                } else msg('msgAuth', d.message, false);
+            } catch(e) { msg('msgAuth', "Erreur connexion", false); }
+        }
+
+        async function chargerListe() {
+            const tbody = document.getElementById('listeBody');
+            tbody.innerHTML = "<tr><td colspan='4'>Chargement...</td></tr>";
+
+            try {
+
+                const r = await fetch('http://127.0.0.1:5001/persons');
+                const data = await r.json();
+
+                tbody.innerHTML = "";
+                data.forEach(p => {
+                    const row = `
+                        <tr>
+                            <td><strong>${p.id}</strong></td>
+                            <td>${p.name}</td>
+                            <td>
+                                <button class="btn-blue" onclick="voirSante(${p.id}, '${p.name}')">👁️ Voir / Modifier</button>
+                            </td>
+                            <td>
+                                <button class="btn-red" onclick="supprimerTout(${p.id})">❌ Tout Supprimer</button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch(e) { tbody.innerHTML = "<tr><td colspan='4'>Erreur de chargement. Le service 5001 est allumé ?</td></tr>"; }
+        }
+
+        async function creerPersonne() {
+            const nom = document.getElementById('newName').value;
+            try {
+                const r = await fetch('http://127.0.0.1:5001/persons', {
+                    method: 'POST', headers: {'Content-Type': 'application/json', 'x-access-token': token},
+                    body: JSON.stringify({name: nom})
+                });
+                if(r.ok) {
+                    document.getElementById('newName').value = "";
+                    chargerListe();
+                } else alert("Erreur: Connectez-vous d'abord !");
+            } catch(e) { alert("Erreur Service 1"); }
+        }
+
+
+        async function supprimerTout(id) {
+            if(!confirm("⚠️ Attention !\nCela va supprimer la personne ET son dossier médical.\nContinuer ?")) return;
+
+            try {
+                const r = await fetch(`http://127.0.0.1:5001/persons/${id}`, {
+                    method: 'DELETE', headers: {'x-access-token': token}
+                });
+                const d = await r.json();
+                alert(d.message);
+                chargerListe();
+                document.getElementById('boxSante').style.display = 'none';
+            } catch(e) { alert("Erreur suppression"); }
+        }
+
+
+        async function voirSante(id, nom) {
+            currentId = id;
+            document.getElementById('boxSante').style.display = 'block';
+            document.getElementById('santeTitre').innerText = "de " + nom;
+            document.getElementById('santeInfo').innerText = "Recherche des données...";
+
+            try {
+                const r = await fetch(`http://127.0.0.1:5002/health/${id}`);
+                if(r.ok) {
+                    const d = await r.json();
+                    document.getElementById('santeInfo').innerText = `✅ Poids: ${d.poids}kg | Taille: ${d.taille}cm`;
+                    document.getElementById('poids').value = d.poids;
+                    document.getElementById('taille').value = d.taille;
+                } else {
+                    document.getElementById('santeInfo').innerText = "❌ Aucune donnée de santé trouvée.";
+                    document.getElementById('poids').value = "";
+                    document.getElementById('taille').value = "";
+                }
+            } catch(e) { document.getElementById('santeInfo').innerText = "Erreur connexion service santé"; }
+        }
+
+        async function sauvegarderSante() {
+            const p = document.getElementById('poids').value;
+            const t = document.getElementById('taille').value;
+
+            try {
+                const r = await fetch(`http://127.0.0.1:5002/health/${currentId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'x-access-token': token},
+                    body: JSON.stringify({poids: p, taille: t})
+                });
+
+                const d = await r.json();
+
+                if (r.ok) {
+                    alert("✅ Santé sauvegardée avec succès !");
+                    voirSante(currentId, ""); // On rafraichit l'affichage
+                } else {
+                    // C'est ici qu'on va voir le vrai problème
+                    alert("❌ Erreur : " + (d.error || d.message));
+                }
+            } catch(e) {
+                alert("❌ Impossible de contacter le service santé (5002).");
+            }
+        }
+
+        async function supprimerJusteSante() {
+            if(!confirm("Supprimer UNIQUEMENT les données de santé ? (La personne restera)")) return;
+            await fetch(`http://127.0.0.1:5002/health/${currentId}`, {
+                method: 'DELETE', headers: {'x-access-token': token}
+            });
+            alert("Données santé supprimées !");
+            voirSante(currentId, "");
+        }
+
+        function msg(id, txt, success) {
+            const el = document.getElementById(id);
+            el.innerText = txt;
+            el.className = "status " + (success ? "success" : "error");
+            el.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

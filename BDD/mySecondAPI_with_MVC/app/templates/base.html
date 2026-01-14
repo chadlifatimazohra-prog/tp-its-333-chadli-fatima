@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Liste des étudiants</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 60%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #eee;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Liste des étudiants</h2>
+
+<table>
+    <tr>
+        <th>Nom</th>
+        <th>Adress</th>
+        <th>Pincode</th>
+    </tr>
+
+    {% for e in etudiants %}
+    <tr>
+        <td>{{ e[0] }}</td>
+        <td>{{ e[1] }}</td>
+        <td>{{ e[2] }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<br>
+<a href="/">➕ Ajouter un étudiant</a>
+
+</body>
+</html>
